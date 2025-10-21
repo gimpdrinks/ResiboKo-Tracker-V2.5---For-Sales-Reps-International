@@ -16,8 +16,14 @@ const fileToGenerativePart = async (file: File) => {
 };
 
 const categories = [
-    "Food & Drink", "Groceries", "Transportation", "Shopping", "Utilities",
-    "Entertainment", "Health & Wellness", "Travel", "Other"
+    "Meals",
+    "Travel",
+    "Vehicle Expenses",
+    "Client Entertainment",
+    "Office Supplies",
+    "Communications",
+    "Utilities",
+    "Other"
 ];
 
 export const analyzeReceipt = async (imageFile: File): Promise<ReceiptData> => {

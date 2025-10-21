@@ -17,7 +17,7 @@ const agentPresets = [
         data: {
             transaction_name: 'Parking',
             total_amount: 5,
-            category: 'Transportation' as const,
+            category: 'Vehicle Expenses' as const,
             purpose: 'Parking',
         },
         colorClass: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
@@ -27,7 +27,7 @@ const agentPresets = [
         data: {
             transaction_name: 'Toll',
             total_amount: 8,
-            category: 'Transportation' as const,
+            category: 'Vehicle Expenses' as const,
             purpose: 'Toll',
         },
         colorClass: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
@@ -37,10 +37,10 @@ const agentPresets = [
         data: {
             transaction_name: 'Client Coffee',
             total_amount: 15,
-            category: 'Food & Drink' as const,
+            category: 'Client Entertainment' as const,
             purpose: 'Client Coffee',
         },
-        colorClass: 'bg-red-100 text-red-800 hover:bg-red-200',
+        colorClass: 'bg-purple-100 text-purple-800 hover:bg-purple-200',
     },
 ];
 
@@ -49,7 +49,7 @@ const App: React.FC = () => {
     const [savedReceipts, setSavedReceipts] = useState<SavedReceiptData[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [manualEntryData, setManualEntryData] = useState<Partial<ReceiptData> | null>(null);
+    const [manualEntryData, setManualEntryData] = useState<Partial<SavedReceiptData> | null>(null);
     const [showCamera, setShowCamera] = useState<boolean>(false);
 
     // Load receipts from local storage on initial render
@@ -111,9 +111,19 @@ const App: React.FC = () => {
         setReceiptData(null);
     }, []);
     
-    const handleSaveFromManual = (data: ReceiptData) => {
-        handleSaveReceipt(data);
-        setManualEntryData(null); // Close modal on save
+    const handleSaveFromManual = (data: ReceiptData & { id?: number }) => {
+        if (data.id) {
+            // This is an update
+            const { id, ...rest } = data;
+            setSavedReceipts(prev => 
+                prev.map(r => r.id === id ? { ...rest, id } : r)
+                  .sort((a, b) => new Date(b.transaction_date!).getTime() - new Date(a.transaction_date!).getTime())
+            );
+        } else {
+            // This is a new receipt
+            handleSaveReceipt(data);
+        }
+        setManualEntryData(null); // Close modal
     };
 
     const handlePresetClick = (presetData: Omit<ReceiptData, 'transaction_date' | 'client_or_prospect'>) => {
@@ -133,13 +143,20 @@ const App: React.FC = () => {
         setSavedReceipts(prev => prev.filter(receipt => receipt.id !== id));
     };
 
+    const handleEditReceipt = (id: number) => {
+        const receiptToEdit = savedReceipts.find(r => r.id === id);
+        if (receiptToEdit) {
+            setManualEntryData(receiptToEdit);
+        }
+    };
+
     return (
         <div className="bg-slate-100 min-h-screen font-sans">
             <header className="bg-white shadow-sm sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center">
                    <img src="https://res.cloudinary.com/dbylka4xx/image/upload/v1751883360/AiForPinoys_Logo_ttg2id.png" alt="ResiboKo Logo" className="h-16 w-auto mx-auto mb-2"/>
                    <h1 className="text-3xl font-bold font-poppins text-slate-800">ResiboKo</h1>
-                   <p className="mt-1 text-slate-600">Liquidation in 15 Minutes. Every time.</p>
+                   <p className="mt-1 text-slate-600">Snap or speak your receipts. We turn them into a manager-ready Expense Report.</p>
                 </div>
             </header>
 
@@ -210,6 +227,7 @@ const App: React.FC = () => {
                 <TransactionHistory 
                     receipts={savedReceipts}
                     onDelete={handleDeleteReceipt}
+                    onEdit={handleEditReceipt}
                 />
 
                 <AIAnalytics receipts={savedReceipts} />

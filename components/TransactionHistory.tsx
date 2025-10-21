@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SavedReceiptData } from '../types';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -7,14 +7,18 @@ import { BookOpenIcon } from './icons/BookOpenIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { SyncIcon } from './icons/SyncIcon';
 import { FileTextIcon } from './icons/FileTextIcon';
+import { PencilIcon } from './icons/PencilIcon';
 import Spinner from './Spinner';
 
 interface TransactionHistoryProps {
   receipts: SavedReceiptData[];
   onDelete: (id: number) => void;
+  onEdit: (id: number) => void;
 }
 
 type FilterType = 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'All';
+
+const PAGE_SIZE = 20; // Number of items to show per "page"
 
 // Date helper functions
 const getWeekRange = (date: Date) => {
@@ -38,19 +42,24 @@ const getQuarterRange = (date: Date) => {
     return { start, end };
 }
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ receipts, onDelete }) => {
-  const [activeFilter, setActiveFilter] = useState<FilterType>('All');
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({ receipts, onDelete, onEdit }) => {
+  const [activeFilter, setActiveFilter] = useState<FilterType>('Daily');
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+
+  // Reset visible count when filter changes
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [activeFilter]);
 
   const categoryColors: { [key: string]: string } = {
-    "Food & Drink": "bg-red-100 text-red-800",
-    "Groceries": "bg-green-100 text-green-800",
-    "Transportation": "bg-blue-100 text-blue-800",
-    "Shopping": "bg-purple-100 text-purple-800",
-    "Utilities": "bg-yellow-100 text-yellow-800",
-    "Entertainment": "bg-pink-100 text-pink-800",
-    "Health & Wellness": "bg-teal-100 text-teal-800",
+    "Meals": "bg-red-100 text-red-800",
     "Travel": "bg-indigo-100 text-indigo-800",
+    "Vehicle Expenses": "bg-blue-100 text-blue-800",
+    "Client Entertainment": "bg-purple-100 text-purple-800",
+    "Office Supplies": "bg-green-100 text-green-800",
+    "Communications": "bg-yellow-100 text-yellow-800",
+    "Utilities": "bg-teal-100 text-teal-800",
     "Other": "bg-slate-100 text-slate-800",
     "Uncategorized": "bg-gray-100 text-gray-800",
   };
@@ -190,7 +199,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ receipts, onDel
     const data = filteredData as SavedReceiptData[];
 
     doc.setFontSize(18);
-    doc.text('Liquidation Report', 14, 22);
+    doc.text('Expense Report', 14, 22);
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(periodTitle, 14, 30);
@@ -230,7 +239,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ receipts, onDel
     doc.text('_________________________', 14, finalY + 30);
     doc.text('Signature over Printed Name', 14, finalY + 35);
     
-    doc.save(`ResiboKo_Liquidation_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`Expense_Report_${new Date().toISOString().slice(0,10)}.pdf`);
   };
 
   const filters: FilterType[] = ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly', 'All'];
@@ -288,43 +297,60 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ receipts, onDel
           {filteredData.length === 0 ? (
             <p className="text-slate-500 text-center py-8">No transactions found for this period.</p>
           ) : (
-            <ul className="divide-y divide-slate-200">
-              {activeFilter === 'All' ? (
-                (filteredData as SavedReceiptData[]).map(receipt => (
-                   <li key={receipt.id} className="flex items-center justify-between py-4">
-                    <div className="flex-grow">
-                      <div className="flex items-center gap-2">
-                          <p className="font-semibold text-slate-800">{receipt.transaction_name}</p>
-                          {!receipt.purpose && (
-                            <span className="text-xs font-semibold px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
-                              Missing Purpose
-                            </span>
-                          )}
-                      </div>
-                      <p className="text-sm text-slate-500">{receipt.transaction_date}</p>
+            <>
+                <ul className="divide-y divide-slate-200">
+                {activeFilter === 'All' ? (
+                    (filteredData as SavedReceiptData[]).slice(0, visibleCount).map(receipt => (
+                    <li key={receipt.id} className="flex items-center justify-between py-4 gap-4">
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-slate-800 truncate">{receipt.transaction_name}</p>
+                              {!receipt.purpose && (
+                                  <span className="text-xs font-semibold px-2 py-0.5 bg-red-100 text-red-700 rounded-full flex-shrink-0">
+                                  Missing Purpose
+                                  </span>
+                              )}
+                          </div>
+                          <p className="text-sm text-slate-500">{receipt.transaction_date}</p>
+                        </div>
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <div className="text-right">
+                              <p className="font-semibold text-green-600">{formatCurrency(receipt.total_amount || 0)}</p>
+                              <p className={`text-xs font-medium px-2 py-0.5 rounded-full ml-auto w-fit ${categoryColors[receipt.category || 'Other'] || categoryColors['Other']}`}>
+                                  {receipt.category}
+                              </p>
+                          </div>
+                          <div className="flex items-center">
+                            <button onClick={() => onEdit(receipt.id)} className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors" aria-label="Edit transaction">
+                                <PencilIcon className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => onDelete(receipt.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" aria-label="Delete transaction">
+                                <TrashIcon className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                    </li>
+                    ))
+                ) : (
+                    (filteredData as { category: string; total: number }[]).map(({ category, total }) => (
+                    <li key={category} className="flex items-center justify-between py-3">
+                        <span className={`text-sm font-semibold px-2 py-1 rounded-full ${categoryColors[category] || categoryColors['Other']}`}>{category}</span>
+                        <span className="font-bold text-slate-800">{formatCurrency(total)}</span>
+                    </li>
+                    ))
+                )}
+                </ul>
+                {activeFilter === 'All' && visibleCount < (filteredData as SavedReceiptData[]).length && (
+                    <div className="mt-4 text-center">
+                        <button
+                            onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+                            className="px-4 py-2 text-sm font-semibold text-indigo-600 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition-colors"
+                        >
+                            Load More
+                        </button>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="font-semibold text-green-600 text-right">{formatCurrency(receipt.total_amount || 0)}</p>
-                        <p className={`text-xs font-medium px-2 py-0.5 rounded-full text-right ml-auto w-fit ${categoryColors[receipt.category || 'Other'] || categoryColors['Other']}`}>
-                            {receipt.category}
-                        </p>
-                      </div>
-                      <button onClick={() => onDelete(receipt.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" aria-label="Delete transaction">
-                        <TrashIcon className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </li>
-                ))
-              ) : (
-                 (filteredData as { category: string; total: number }[]).map(({ category, total }) => (
-                  <li key={category} className="flex items-center justify-between py-3">
-                    <span className={`text-sm font-semibold px-2 py-1 rounded-full ${categoryColors[category] || categoryColors['Other']}`}>{category}</span>
-                    <span className="font-bold text-slate-800">{formatCurrency(total)}</span>
-                  </li>
-                ))
-              )}
-            </ul>
+                )}
+            </>
           )}
         </div>
       )}

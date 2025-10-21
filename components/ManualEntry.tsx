@@ -1,19 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ReceiptData } from '../types';
+import { ReceiptData, SavedReceiptData } from '../types';
 import { PlusCircleIcon } from './icons/PlusCircleIcon';
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
 import { analyzeTransactionFromVoice } from '../services/geminiService';
 import Spinner from './Spinner';
 
 interface ManualEntryProps {
-  initialData?: Partial<ReceiptData>;
+  initialData?: Partial<SavedReceiptData>;
   onClose: () => void;
-  onSave: (data: ReceiptData) => void;
+  onSave: (data: ReceiptData & { id?: number }) => void;
 }
 
 const categories = [
-    "Food & Drink", "Groceries", "Transportation", "Shopping", "Utilities",
-    "Entertainment", "Health & Wellness", "Travel", "Other"
+    "Meals",
+    "Travel",
+    "Vehicle Expenses",
+    "Client Entertainment",
+    "Office Supplies",
+    "Communications",
+    "Utilities",
+    "Other"
 ];
 
 const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave }) => {
@@ -21,7 +27,7 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
   const [transactionName, setTransactionName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().slice(0, 10));
-  const [category, setCategory] = useState(categories[2]); // Default to Transportation
+  const [category, setCategory] = useState(categories[1]); // Default to Travel
   const [clientOrProspect, setClientOrProspect] = useState('');
   const [purpose, setPurpose] = useState('');
 
@@ -44,7 +50,7 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
         setTransactionName(initialData.transaction_name || '');
         setTotalAmount(initialData.total_amount?.toString() || '');
         setTransactionDate(initialData.transaction_date || new Date().toISOString().slice(0, 10));
-        setCategory(initialData.category || categories[2]);
+        setCategory(initialData.category || categories[1]);
         setClientOrProspect(initialData.client_or_prospect || '');
         setPurpose(initialData.purpose || '');
     }
@@ -117,10 +123,11 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
     if (startLocation && endLocation && !isNaN(distanceNum) && distanceNum > 0 && !isNaN(rateNum)) {
       const calculatedAmount = distanceNum * rateNum;
       onSave({
+        id: initialData?.id,
         transaction_name: `Mileage: ${startLocation} to ${endLocation}`,
         total_amount: calculatedAmount,
         transaction_date: transactionDate,
-        category: 'Transportation',
+        category: 'Vehicle Expenses',
         purpose: 'Mileage',
         client_or_prospect: clientOrProspect || null,
       });
@@ -131,6 +138,7 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
     const amount = parseFloat(totalAmount);
     if (transactionName && !isNaN(amount) && transactionDate && category) {
       onSave({
+        id: initialData?.id,
         transaction_name: transactionName,
         total_amount: amount,
         transaction_date: transactionDate,
@@ -161,7 +169,7 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold font-poppins text-slate-800">Add Manual Entry</h2>
+            <h2 className="text-xl font-bold font-poppins text-slate-800">{initialData?.id ? 'Edit Entry' : 'Add Manual Entry'}</h2>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600">&times;</button>
         </div>
 

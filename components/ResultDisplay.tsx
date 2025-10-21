@@ -10,8 +10,14 @@ interface ResultDisplayProps {
 }
 
 const categories = [
-    "Food & Drink", "Groceries", "Transportation", "Shopping", "Utilities",
-    "Entertainment", "Health & Wellness", "Travel", "Other"
+    "Meals",
+    "Travel",
+    "Vehicle Expenses",
+    "Client Entertainment",
+    "Office Supplies",
+    "Communications",
+    "Utilities",
+    "Other"
 ];
 
 const formatCurrency = (amount: number | null) => {
