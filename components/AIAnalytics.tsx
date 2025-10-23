@@ -6,9 +6,13 @@ import { SparklesIcon } from './icons/SparklesIcon';
 
 interface AIAnalyticsProps {
     receipts: SavedReceiptData[];
+    usageCount: number;
+    usageLimit: number;
+    isLimitReached: boolean;
+    incrementUsage: () => void;
 }
 
-const AIAnalytics: React.FC<AIAnalyticsProps> = ({ receipts }) => {
+const AIAnalytics: React.FC<AIAnalyticsProps> = ({ receipts, isLimitReached, incrementUsage }) => {
     const [query, setQuery] = useState('');
     const [analysis, setAnalysis] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +28,11 @@ const AIAnalytics: React.FC<AIAnalyticsProps> = ({ receipts }) => {
     const handleGetInsights = async () => {
         if (!query.trim() || receipts.length === 0) return;
 
+        if (isLimitReached) {
+            setError("You have reached your monthly AI credit limit.");
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         setAnalysis('');
@@ -31,6 +40,7 @@ const AIAnalytics: React.FC<AIAnalyticsProps> = ({ receipts }) => {
         try {
             const result = await getSpendingAnalysis(receipts, query);
             setAnalysis(result);
+            incrementUsage(); // Increment on success
         } catch (err) {
             console.error(err);
             setError('Failed to get insights. Please try again.');
@@ -105,9 +115,10 @@ const AIAnalytics: React.FC<AIAnalyticsProps> = ({ receipts }) => {
                         <textarea
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="e.g., How much did I spend on groceries this week?"
-                            className="w-full px-3 py-2 text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow"
+                            placeholder={isLimitReached ? "You have reached your monthly AI credit limit." : "e.g., How much did I spend on groceries this week?"}
+                            className="w-full px-3 py-2 text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow disabled:bg-slate-100"
                             rows={3}
+                            disabled={isLimitReached}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -117,20 +128,21 @@ const AIAnalytics: React.FC<AIAnalyticsProps> = ({ receipts }) => {
                         />
                          <div className="flex flex-wrap gap-2">
                             {examplePrompts.map(prompt => (
-                                <button key={prompt} onClick={() => handlePromptClick(prompt)} className="px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors">
+                                <button key={prompt} onClick={() => handlePromptClick(prompt)} disabled={isLimitReached} className="px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors disabled:bg-slate-200 disabled:text-slate-500">
                                     {prompt}
                                 </button>
                             ))}
                         </div>
                     </div>
                    
+                    <p className="text-xs text-indigo-600 font-semibold text-center mt-4">(Uses 1 AI Credit)</p>
                     <button
                         onClick={handleGetInsights}
-                        disabled={isLoading || !query.trim()}
-                        className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white bg-slate-700 hover:bg-slate-800 rounded-lg font-semibold transition-colors shadow-sm disabled:bg-slate-400 disabled:cursor-not-allowed"
+                        disabled={isLoading || !query.trim() || isLimitReached}
+                        className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white bg-slate-700 hover:bg-slate-800 rounded-lg font-semibold transition-colors shadow-sm disabled:bg-slate-400 disabled:cursor-not-allowed"
                     >
                         {isLoading ? <Spinner /> : <SparklesIcon className="w-5 h-5" />}
-                        {isLoading ? 'Analyzing...' : 'Get Insights'}
+                        {isLoading ? 'Analyzing...' : (isLimitReached ? 'Limit Reached' : 'Get Insights')}
                     </button>
                     {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
 

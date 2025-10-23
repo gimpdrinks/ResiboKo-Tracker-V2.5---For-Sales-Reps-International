@@ -183,7 +183,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ receipts, onDel
       const encodedUri = encodeURI(csvContent + csvRows);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `ResiboKo_Export_${activeFilter}_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute("download", `Snappense_Export_${activeFilter}_${new Date().toISOString().slice(0,10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -310,8 +310,16 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ receipts, onDel
                                   Missing Purpose
                                   </span>
                               )}
+                              {receipt.category === 'Client Entertainment' && !receipt.client_or_prospect && (
+                                  <span className="text-xs font-semibold px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full flex-shrink-0">
+                                  Missing Client
+                                  </span>
+                              )}
                           </div>
-                          <p className="text-sm text-slate-500">{receipt.transaction_date}</p>
+                          <p className="text-sm text-slate-500">
+                            {receipt.transaction_date}
+                            {receipt.client_or_prospect && <span className="text-slate-400"> • {receipt.client_or_prospect}</span>}
+                          </p>
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">
                           <div className="text-right">

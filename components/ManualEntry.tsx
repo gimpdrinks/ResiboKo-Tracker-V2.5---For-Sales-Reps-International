@@ -9,6 +9,8 @@ interface ManualEntryProps {
   initialData?: Partial<SavedReceiptData>;
   onClose: () => void;
   onSave: (data: ReceiptData & { id?: number }) => void;
+  isLimitReached: boolean;
+  incrementUsage: () => void;
 }
 
 const categories = [
@@ -22,7 +24,7 @@ const categories = [
     "Other"
 ];
 
-const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave }) => {
+const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave, isLimitReached, incrementUsage }) => {
   // State for manual entry
   const [transactionName, setTransactionName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
@@ -66,6 +68,10 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
   };
 
   const startRecording = async () => {
+    if (isLimitReached) {
+        setError("You have reached your monthly AI credit limit.");
+        return;
+    }
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -81,9 +87,14 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
         try {
             const result = await analyzeTransactionFromVoice(audioFile);
             handleVoiceData(result);
+            incrementUsage(); // Increment on success
         } catch (err) {
             console.error(err);
-            setError("Sorry, I couldn't understand that. Please try again or enter manually.");
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError("An unknown error occurred during voice analysis.");
+            }
         } finally {
             setIsProcessing(false);
         }
@@ -180,13 +191,14 @@ const ManualEntry: React.FC<ManualEntryProps> = ({ initialData, onClose, onSave 
             <button
                 type="button"
                 onClick={handleRecordClick}
-                disabled={isProcessing}
-                className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isRecording ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} disabled:bg-slate-300`}
+                disabled={isProcessing || isLimitReached}
+                className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isRecording ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} disabled:bg-slate-400 disabled:cursor-not-allowed`}
             >
                 {isProcessing ? <Spinner className="w-5 h-5" /> : <MicrophoneIcon className="w-5 h-5" />}
-                {isProcessing ? 'Processing...' : (isRecording ? 'Stop Recording' : 'Record with Voice')}
+                {isProcessing ? 'Processing...' : (isRecording ? 'Stop Recording' : (isLimitReached ? 'AI Credit Limit Reached' : 'Record with Voice'))}
             </button>
-            <p className="text-xs text-slate-500 mt-2 text-center">Example: "Bus fare, twenty dollars, today, transportation"</p>
+            <p className="text-xs text-indigo-600 font-semibold mt-2 text-center">(Uses 1 AI Credit)</p>
+            <p className="text-xs text-slate-500 mt-1 text-center">Example: "Bus fare, twenty dollars, today, transportation"</p>
           </div>
 
           <div className="my-4 p-4 bg-slate-50 rounded-lg border border-slate-200">

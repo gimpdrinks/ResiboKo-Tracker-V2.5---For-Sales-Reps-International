@@ -10,6 +10,7 @@ import AIAnalytics from './components/AIAnalytics';
 import Spinner from './components/Spinner';
 import { CameraIcon } from './components/icons/CameraIcon';
 import { PlusCircleIcon } from './components/icons/PlusCircleIcon';
+import { useUsageQuota } from './hooks/useUsageQuota'; // Import the new hook
 
 const agentPresets = [
     {
@@ -51,6 +52,7 @@ const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [manualEntryData, setManualEntryData] = useState<Partial<SavedReceiptData> | null>(null);
     const [showCamera, setShowCamera] = useState<boolean>(false);
+    const { usageCount, usageLimit, isLimitReached, incrementUsage } = useUsageQuota();
 
     // Load receipts from local storage on initial render
     useEffect(() => {
@@ -74,35 +76,30 @@ const App: React.FC = () => {
     }, [savedReceipts]);
 
     const handleImageSelect = useCallback(async (file: File) => {
+        if (isLimitReached) {
+            setError(`You have reached your monthly limit of ${usageLimit} AI credits.`);
+            return;
+        }
         setIsLoading(true);
         setError(null);
         setReceiptData(null);
         try {
             const data = await analyzeReceipt(file);
-            // Basic validation for current year
-            if (data.transaction_date) {
-                const receiptYear = new Date(data.transaction_date).getFullYear();
-                const currentYear = new Date().getFullYear();
-                if (receiptYear !== currentYear) {
-                    setError(`This receipt is from ${receiptYear}. Only transactions for the current year (${currentYear}) are allowed.`);
-                    setIsLoading(false);
-                    return;
-                }
-            }
             setReceiptData(data);
+            incrementUsage(); // Increment on successful analysis
         } catch (err) {
             console.error(err);
-            setError('Failed to analyze the receipt. Please try again.');
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [isLimitReached, usageLimit, incrementUsage]);
 
     const handleSaveReceipt = useCallback((data: ReceiptData) => {
-        if (!data.transaction_name || data.total_amount === null || !data.transaction_date || !data.category) {
-            setError("Cannot save incomplete receipt data.");
-            return;
-        }
         const newReceipt: SavedReceiptData = {
             ...data,
             id: Date.now(),
@@ -154,9 +151,12 @@ const App: React.FC = () => {
         <div className="bg-slate-100 min-h-screen font-sans">
             <header className="bg-white shadow-sm sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center">
-                   <img src="https://res.cloudinary.com/dbylka4xx/image/upload/v1751883360/AiForPinoys_Logo_ttg2id.png" alt="ResiboKo Logo" className="h-16 w-auto mx-auto mb-2"/>
-                   <h1 className="text-3xl font-bold font-poppins text-slate-800">ResiboKo</h1>
+                   <img src="https://res.cloudinary.com/dbylka4xx/image/upload/v1761032015/Snappense_Logo_hvanu1.png" alt="Snappense Logo" className="h-16 w-auto mx-auto mb-2"/>
+                   <h1 className="text-3xl font-bold font-poppins text-slate-800">Snappense</h1>
                    <p className="mt-1 text-slate-600">Snap or speak your receipts. We turn them into a manager-ready Expense Report.</p>
+                   <div className="mt-3 text-sm font-semibold bg-indigo-100 text-indigo-700 rounded-full px-3 py-1 w-fit mx-auto">
+                        AI Credits Used: {usageCount} / {usageLimit}
+                   </div>
                 </div>
             </header>
 
@@ -184,11 +184,12 @@ const App: React.FC = () => {
                                 <div className="flex-grow border-t border-slate-200"></div>
                             </div>
                             <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">Upload a Receipt</h2>
-                            <p className="text-slate-500 mb-6 text-center text-sm">Extract transaction data using AI.</p>
-                            <ImageUploader onImageSelect={handleImageSelect} />
+                            <p className="text-slate-500 mb-2 text-center text-sm">Extract transaction data using AI.</p>
+                             <p className="text-xs text-indigo-600 font-semibold text-center mb-4">(Uses 1 AI Credit)</p>
+                            <ImageUploader onImageSelect={handleImageSelect} disabled={isLimitReached} />
                            
                             <div className="space-y-3 mt-6">
-                                <button onClick={() => setShowCamera(true)} className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white bg-slate-700 hover:bg-slate-800 rounded-lg font-semibold transition-colors shadow-sm">
+                                <button onClick={() => setShowCamera(true)} disabled={isLimitReached} className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white bg-slate-700 hover:bg-slate-800 rounded-lg font-semibold transition-colors shadow-sm disabled:bg-slate-400 disabled:cursor-not-allowed">
                                     <CameraIcon className="w-5 h-5" />
                                     Use Camera
                                 </button>
@@ -208,10 +209,10 @@ const App: React.FC = () => {
                     )}
                      {error && !isLoading && (
                          <div className="text-center p-4">
-                             <p className="text-red-600 font-semibold">Analysis Failed</p>
+                             <p className="text-red-600 font-semibold">{isLimitReached ? 'Monthly Limit Reached' : 'Analysis Failed'}</p>
                              <p className="text-slate-600 mt-1">{error}</p>
                              <button onClick={handleDiscard} className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg">
-                                 Try Again
+                                 {isLimitReached ? 'OK' : 'Try Again'}
                             </button>
                          </div>
                     )}
@@ -230,7 +231,13 @@ const App: React.FC = () => {
                     onEdit={handleEditReceipt}
                 />
 
-                <AIAnalytics receipts={savedReceipts} />
+                <AIAnalytics 
+                    receipts={savedReceipts}
+                    usageCount={usageCount}
+                    usageLimit={usageLimit}
+                    isLimitReached={isLimitReached}
+                    incrementUsage={incrementUsage}
+                />
             </main>
             
             {manualEntryData && (
@@ -238,6 +245,8 @@ const App: React.FC = () => {
                     initialData={manualEntryData}
                     onClose={() => setManualEntryData(null)}
                     onSave={handleSaveFromManual}
+                    isLimitReached={isLimitReached}
+                    incrementUsage={incrementUsage}
                 />
             )}
             
