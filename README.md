@@ -1,68 +1,62 @@
-<div align="center"> <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-
-Snappense - AI Expense Reports for Sales Reps
-Snap or speak your receipts. We turn them into a manager-ready Expense Report.
-
+<div align="center">
+  <img src="https://res.cloudinary.com/dbylka4xx/image/upload/v1761032015/Snappense_Logo_hvanu1.png" alt="Snappense Logo" width="600"/>
 </div>
 
-Snappense is an intelligent expense tracker built with React, TypeScript, and the Google Gemini AI. It's designed to eliminate the friction of expense reporting for busy sales representatives by using AI to capture, categorize, and analyze expenses from receipts, voice, or manual entry.
+<h1 align="center">Snappense - Expense Reports for Sales Reps</h1>
 
-✨ Key Features
-📸 AI Receipt Scanning: Upload a receipt image or use your camera to have AI automatically extract the merchant, amount, date, and category.
+<p align="center">
+  A financial web app that scans receipts, transcribes voice memos, and documents daily expenses to create manager-ready reports in minutes.
+</p>
 
-🗣️ AI Voice Entry: Simply record your expense ("Bus fare, twenty dollars, today") and let AI parse the details and add it to your log.
+## ✨ Core Features
 
-📊 AI Expense Analyst: Ask "Alex," your built-in AI analyst, questions like, "How much did I spend on travel this month?" or "Scan my report for compliance risks."
+Snappense is designed to be the fastest way for a sales rep to log expenses and get reimbursed.
 
-💵 Sales Rep Presets: One-click buttons to add common expenses like "Parking ($5)," "Toll ($8)," or "Client Coffee ($15)."
+* **🤖 AI Receipt Scanning**: Upload or drag-and-drop a receipt image, and the Gemini AI will automatically extract the transaction name, amount, date, category, and purpose.
+* **🗣️ Voice-to-Transaction**: Simply record your expense (e.g., "Bus fare, twenty dollars, today, transportation") and the AI will parse it and fill out the form for you.
+* **📸 Camera Capture**: Use your device's camera to snap a photo of a receipt directly within the app.
+* **🧾 Manual & Mileage Entry**: A dedicated modal for manually logging transactions or calculating mileage-based reimbursements.
+* **📈 AI Expense Analyst**: Ask "Alex," your AI analyst, questions about your spending (e.g., "How much did I spend on travel?" or "Scan for compliance risks"). It will analyze your history and provide insights.
+* **📄 Export & Sync**:
+    * Generate **PDF** or **CSV** reports of your transactions.
+    * Sync all your expenses to a **Google Sheet** with a single click.
+* **⚡ Sales Rep Presets**: Quickly log common expenses like "Parking ($5)" or "Client Coffee ($15)" with predefined buttons.
+* **✅ Smart Validation**: The app validates entries to prevent future dates and warns about high amounts or missing fields (like 'Purpose') to ensure compliance.
 
-🛣️ Mileage Logging: A dedicated interface to log mileage by entering start/end locations and distance, with automatic rate calculation.
+---
 
-🧾 Smart Transaction History: View all your expenses, filtered by day, week, month, or quarter. The app flags transactions that are missing key information (like a purpose or client name) that managers look for.
+## 🛠️ Tech Stack
 
-📄 Manager-Ready Exports: Generate a professional PDF or CSV of your expenses, perfect for submission.
+* **Frontend**: React, Vite, TypeScript, Tailwind CSS
+* **AI**: Google Gemini API (`gemini-2.5-flash`) for receipt analysis, voice transcription, and spending insights.
+* **Reporting**: `jspdf` & `jspdf-autotable` for PDF generation.
+* **Persistence**: `localStorage` is used to save transactions and AI credit usage on the user's device.
 
-🔄 Google Sheets Sync: Connect and sync all your transactions to a Google Sheet with a single click.
+---
 
-🔒 Local-First Storage: All your data is saved in your browser's local storage.
+## 🚀 Run Locally
 
-📈 Usage Quota: Comes with a built-in monthly AI credit system to manage API usage.
+**Prerequisites:** [Node.js](https://nodejs.org/)
 
-🛠️ Tech Stack
-Frontend: React (Vite)
+1.  **Clone the repository:**
+    ```sh
+    git clone <your-repo-url>
+    cd <your-repo-directory>
+    ```
 
-Language: TypeScript
+2.  **Install dependencies:**
+    ```sh
+    npm install
+    ```
 
-AI: Google Gemini
+3.  **Set up your environment:**
+    Create a file named `.env.local` in the root of the project and add your Gemini API key:
+    ```
+    GEMINI_API_KEY=your_api_key_here
+    ```
 
-Styling: Tailwind CSS
-
-PDF Generation: jsPDF & jspdf-autotable
-
-🚀 Run Locally
-Prerequisites: Node.js
-
-Clone the repository:
-
-Bash
-
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
-Install dependencies:
-
-Bash
-
-npm install
-Set your API Key:
-
-Create a file named .env.local in the root of the project.
-
-Add your Gemini API key to it:
-
-GEMINI_API_KEY=YOUR_API_KEY_HERE
-Run the app:
-
-Bash
-
-npm run dev
-The app will be available at http://localhost:3000.
+4.  **Run the app:**
+    ```sh
+    npm run dev
+    ```
+    The application will be available at `http://localhost:3000`.
